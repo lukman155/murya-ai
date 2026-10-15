@@ -341,7 +341,7 @@ async function submitTextQuery(text, sampleHint = null) {
         };
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        const timeoutId = setTimeout(() => controller.abort(), 28000);
         
         const res = await fetch(`${base}/api/resolve/text`, {
             method: "POST",
@@ -383,7 +383,7 @@ async function submitVoiceQuery(base64Audio, transcribedText = null) {
         };
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 14000);
+        const timeoutId = setTimeout(() => controller.abort(), 28000);
 
         const res = await fetch(`${base}/api/resolve/voice`, {
             method: "POST",
