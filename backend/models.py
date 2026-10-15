@@ -25,9 +25,10 @@ class VoiceQueryRequest(BaseModel):
     language: Optional[str] = Field(default=None, description="Optional specified language")
     channel: str = Field(default="web", description="Channel: web, ivr_phone, whatsapp_voice")
     caller_id: Optional[str] = Field(default="08031234567", description="Caller phone number")
+    transcription_hint: Optional[str] = Field(default=None, description="Client-side transcribed speech if available")
 
 class ExtractedEntities(BaseModel):
-    domain: str = Field(..., description="'banking_pos' or 'electricity_disco'")
+    domain: str = Field(..., description="'banking_pos', 'electricity_disco', or 'general_support'")
     intent: str = Field(..., description="Classified intent, e.g., 'failed_pos_debit', 'missing_meter_token'")
     amount: Optional[float] = None
     account_or_phone: Optional[str] = None

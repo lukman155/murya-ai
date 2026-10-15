@@ -211,6 +211,20 @@ def resolve_disco_complaint(
         "sla_hours": sla_hours
     }
 
+def resolve_general_inquiry(caller_id: str = "08031234567", intent: str = "greeting_or_inquiry") -> dict[str, Any]:
+    """Handles general conversational inquiries and greetings."""
+    ticket_id = f"SUP-INQ-{datetime.now().strftime('%y%m%d')}-{random.randint(100, 999)}"
+    return {
+        "action_type": "CONVERSATIONAL_SUPPORT",
+        "ticket_id": ticket_id,
+        "status": "SESSION_ACTIVE",
+        "details": {
+            "channel": "voice",
+            "message": "MuryaAI active and listening."
+        },
+        "sla_hours": 0
+    }
+
 def get_recent_tickets(limit: int = 15) -> list[dict[str, Any]]:
     """Returns recent resolved/in-progress tickets for the admin telemetry view."""
     return ACTIVE_TICKETS[:limit]

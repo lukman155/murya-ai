@@ -258,14 +258,59 @@ function updateChannelSimulator(channel) {
     }
 }
 
-// Toggle browser audio recording
+let speechRecognitionInstance = null;
+let liveTranscribedSpeech = "";
+
+// Toggle browser audio recording with real-time Speech Recognition
 async function toggleRecording() {
     const btn = document.getElementById("btn-record");
     const statusText = document.getElementById("record-status");
     const wave = document.getElementById("mic-wave");
 
     if (!isRecording) {
+        liveTranscribedSpeech = "";
         try {
+            // 1. Browser Speech Recognition (Web Speech API)
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                try {
+                    speechRecognitionInstance = new SpeechRecognition();
+                    speechRecognitionInstance.continuous = true;
+                    speechRecognitionInstance.interimResults = true;
+                    
+                    const selectedLang = document.getElementById("lang-select").value;
+                    if (selectedLang === "hausa") speechRecognitionInstance.lang = "ha-NG";
+                    else if (selectedLang === "yoruba") speechRecognitionInstance.lang = "yo-NG";
+                    else if (selectedLang === "igbo") speechRecognitionInstance.lang = "ig-NG";
+                    else speechRecognitionInstance.lang = "en-NG";
+
+                    speechRecognitionInstance.onresult = (event) => {
+                        let interim = "";
+                        for (let i = event.resultIndex; i < event.results.length; ++i) {
+                            if (event.results[i].isFinal) {
+                                liveTranscribedSpeech += event.results[i][0].transcript + " ";
+                            } else {
+                                interim += event.results[i][0].transcript;
+                            }
+                        }
+                        const currentText = (liveTranscribedSpeech + interim).trim();
+                        if (currentText) {
+                            document.getElementById("manual-text-input").value = currentText;
+                            statusText.innerText = `Heard: "${currentText}"`;
+                        }
+                    };
+
+                    speechRecognitionInstance.onerror = (e) => {
+                        console.info("Speech recognition info:", e.error);
+                    };
+
+                    speechRecognitionInstance.start();
+                } catch (e) {
+                    console.info("SpeechRecognition start notice:", e.message);
+                }
+            }
+
+            // 2. MediaRecorder for raw audio stream
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
@@ -280,7 +325,8 @@ async function toggleRecording() {
                 reader.readAsDataURL(audioBlob);
                 reader.onloadend = () => {
                     const base64Audio = reader.result;
-                    submitVoiceQuery(base64Audio);
+                    const finalTranscript = (liveTranscribedSpeech || document.getElementById("manual-text-input").value).trim();
+                    submitVoiceQuery(base64Audio, finalTranscript);
                 };
             };
 
@@ -293,9 +339,12 @@ async function toggleRecording() {
             wave.style.opacity = "1";
         } catch (err) {
             console.warn("Microphone not permitted or unavailable:", err);
-            statusText.innerText = "Mic blocked. Click any benchmark scenario button below to test!";
+            statusText.innerText = "Mic blocked. You can type in the box below and click Submit!";
         }
     } else {
+        if (speechRecognitionInstance) {
+            try { speechRecognitionInstance.stop(); } catch (e) {}
+        }
         if (mediaRecorder && mediaRecorder.state !== "inactive") {
             mediaRecorder.stop();
         }
@@ -329,7 +378,7 @@ async function submitTextQuery(text, sampleHint = null) {
         };
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
         
         const res = await fetch(`${base}/api/resolve/text`, {
             method: "POST",
@@ -355,7 +404,7 @@ async function submitTextQuery(text, sampleHint = null) {
 }
 
 // Send voice query to API with client-side fallback
-async function submitVoiceQuery(base64Audio) {
+async function submitVoiceQuery(base64Audio, transcribedText = null) {
     setLoadingState(true);
     const selectedLang = document.getElementById("lang-select").value;
     const base = getApiBase();
@@ -366,11 +415,12 @@ async function submitVoiceQuery(base64Audio) {
             audio_format: "audio/webm",
             language: selectedLang === "auto" ? null : selectedLang,
             channel: currentChannel,
-            caller_id: "08031234567"
+            caller_id: "08031234567",
+            transcription_hint: transcribedText || null
         };
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 9000);
+        const timeoutId = setTimeout(() => controller.abort(), 14000);
 
         const res = await fetch(`${base}/api/resolve/voice`, {
             method: "POST",
@@ -388,8 +438,8 @@ async function submitVoiceQuery(base64Audio) {
         throw new Error(`Server returned ${res.status}`);
     } catch (err) {
         console.warn("Voice API unavailable, simulating spoken resolution:", err);
-        const sampleMatch = FALLBACK_SAMPLES[Math.floor(Math.random() * FALLBACK_SAMPLES.length)];
-        const simData = simulateClientResolution(sampleMatch.prompt, selectedLang);
+        const queryText = transcribedText || "Hello, can you hear me";
+        const simData = simulateClientResolution(queryText, selectedLang);
         renderResolutionOutput(simData);
     } finally {
         setLoadingState(false);
@@ -422,9 +472,23 @@ function simulateClientResolution(text, langHint) {
     }
 
     // 2. Domain & Intent
+    const isGreeting = /hello|hi\b|hey\b|can you hear|can u hear|who are you|sannu|bawo|kedu|good morning|good afternoon|good evening|test|help/.test(lower);
     const isDisco = /meter|mita|token|ina|wutar|disco|electricity|nepa|light/.test(lower);
-    const domain = isDisco ? "electricity_disco" : "banking_pos";
-    const intent = isDisco ? "retrieve_failed_token" : (/transfer/.test(lower) ? "interbank_transfer_delay" : "failed_pos_withdrawal");
+    const isBanking = /pos|transfer|debit|alert|reversal|kudi|ego|owo|bank|money|cash/.test(lower);
+
+    let domain = "general_support";
+    let intent = "greeting_or_inquiry";
+
+    if (isDisco && !isBanking) {
+        domain = "electricity_disco";
+        intent = "retrieve_failed_token";
+    } else if (isBanking) {
+        domain = "banking_pos";
+        intent = /transfer/.test(lower) ? "interbank_transfer_delay" : "failed_pos_withdrawal";
+    } else {
+        domain = "general_support";
+        intent = "greeting_or_inquiry";
+    }
 
     // 3. Resolution Details
     let ticketId = "";
@@ -433,7 +497,24 @@ function simulateClientResolution(text, langHint) {
     let localResp = "";
     let enResp = "";
 
-    if (domain === "electricity_disco") {
+    if (domain === "general_support") {
+        ticketId = `SESSION-${Math.floor(1000 + Math.random() * 9000)}`;
+        status = "ACTIVE_CONVERSATION";
+        actionType = "CUSTOMER_SUPPORT";
+        if (lang === "Hausa") {
+            localResp = "Sannu! Ina jinka sosai. Ni ne MuryaAI, mai taimaka maka da matsalar kudi ko wutar lantarki ta N-ATLAS. Ta yaya zan taimake ka yau?";
+            enResp = "Hello! Yes, I can hear you clearly. I am MuryaAI, how can I assist you with banking or electricity issues today?";
+        } else if (lang === "Yoruba") {
+            localResp = "E kaasan! Mo n gbo yin ketekete. Emi ni MuryaAI oluranlowo onibara. Bawo ni mo se le ran yin lowo lori oro owo tabi ina loni?";
+            enResp = "Good day! I can hear you clearly. I am MuryaAI, how can I assist you with your banking or electricity issue today?";
+        } else if (lang === "Igbo") {
+            localResp = "Nnoo! Ana m anụ gị nke ọma. Abụ m MuryaAI, onye inyeaka ndị ahịa. Kedu ka m ga-esi nyere gị aka na nsogbu ego ma ọ bụ ọkụ eletrik gị taa?";
+            enResp = "Welcome! I can hear you clearly. I am MuryaAI, how can I assist you today?";
+        } else {
+            localResp = "Hello! Yes, I can hear you loud and clear. I am MuryaAI, your customer resolution agent powered by N-ATLAS. How can I assist you with your banking or electricity issue today?";
+            enResp = "Hello! Yes, I can hear you clearly. I am MuryaAI, your customer resolution agent powered by N-ATLAS. How can I assist you with your banking or electricity issue today?";
+        }
+    } else if (domain === "electricity_disco") {
         const randMeter = (text.match(/\d{9,13}/) || ["01482910394"])[0];
         ticketId = `DISCO-TKN-${randMeter.slice(-6)}`;
         status = "TOKEN_DISPATCHED_SMS";
@@ -489,7 +570,7 @@ function simulateClientResolution(text, langHint) {
             ticket_id: ticketId,
             status: status,
             action_type: actionType,
-            details: `Auto-verified against national switch. Completed in 124ms.`
+            details: `Processed via N-ATLAS engine.`
         },
         response_text_local: localResp,
         response_text_en: enResp,
@@ -512,10 +593,16 @@ function renderResolutionOutput(data) {
     badgeLang.innerText = `${data.detected_language} (${Math.round((data.language_confidence || 0.95) * 100)}%)`;
     
     const badgeDomain = document.getElementById("badge-domain");
-    badgeDomain.innerText = data.entities.domain === "banking_pos" ? "POS Banking" : "DisCo Power";
+    if (data.entities.domain === "banking_pos") {
+        badgeDomain.innerText = "POS Banking";
+    } else if (data.entities.domain === "general_support") {
+        badgeDomain.innerText = "General Support";
+    } else {
+        badgeDomain.innerText = "DisCo Power";
+    }
 
     const badgeIntent = document.getElementById("badge-intent");
-    badgeIntent.innerText = (data.entities.intent || "dispute").replace(/_/g, " ");
+    badgeIntent.innerText = (data.entities.intent || "assistance").replace(/_/g, " ");
 
     // 2. Latency
     const totalMs = data.latency_ms ? data.latency_ms.total_ms : 140;

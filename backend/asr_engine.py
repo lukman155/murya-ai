@@ -4,7 +4,11 @@ integrating with N-ATLAS ASR and dialect acoustic normalizers.
 """
 import base64
 import logging
+import tempfile
+import subprocess
+from pathlib import Path
 from typing import Tuple
+import speech_recognition as sr
 
 logger = logging.getLogger(__name__)
 
@@ -42,28 +46,60 @@ BENCHMARK_AUDIO_PROFILES = {
     }
 }
 
-def transcribe_audio(audio_base64: str, audio_format: str = "audio/webm", sample_hint: str | None = None) -> Tuple[str, str, float]:
+def transcribe_audio(
+    audio_base64: str,
+    audio_format: str = "audio/webm",
+    sample_hint: str | None = None,
+    transcription_hint: str | None = None
+) -> Tuple[str, str, float]:
     """Transcribes an audio stream into text and identifies the spoken Nigerian dialect.
     
     Returns:
         (transcribed_text, detected_language, confidence)
     """
-    try:
-        # Decode audio bytes to ensure payload integrity
-        audio_bytes = base64.b64decode(audio_base64.split(",")[-1])
-        payload_size = len(audio_bytes)
-        logger.info(f"Received audio stream: {payload_size} bytes, format: {audio_format}")
-    except Exception as e:
-        logger.warning(f"Audio payload decoding notice: {e}")
-        payload_size = 0
+    from backend.natlas_engine import detect_language
 
-    # If the user selected a pre-recorded benchmark sample or passed a hint
+    # 1. If explicit benchmark sample hint was chosen
     if sample_hint and sample_hint in BENCHMARK_AUDIO_PROFILES:
         profile = BENCHMARK_AUDIO_PROFILES[sample_hint]
         return profile["text"], profile["lang"], 0.96
 
-    # Normalization & decoding:
-    # If audio is very short or synthetic payload, provide realistic fallback based on header hint
-    # In live browser recording, Web Speech API provides synchronous transcript or client text payload
-    default_text = "Mo ra owo ina naira egberun marun lori mita mi 01482910394 sugbon mi o ri token gba e jowo"
-    return default_text, "yoruba", 0.92
+    # 2. If client provided high-fidelity Web Speech recognition transcription
+    if transcription_hint and transcription_hint.strip():
+        lang, conf = detect_language(transcription_hint.strip())
+        logger.info(f"Using client speech transcription: '{transcription_hint.strip()}' ({lang})")
+        return transcription_hint.strip(), lang, conf
+
+    # 3. Server-side ASR decoding from raw audio bytes
+    try:
+        audio_bytes = base64.b64decode(audio_base64.split(",")[-1])
+        if len(audio_bytes) > 100:
+            with tempfile.TemporaryDirectory() as td:
+                in_path = Path(td) / "input_audio.webm"
+                out_path = Path(td) / "output_audio.wav"
+                in_path.write_bytes(audio_bytes)
+
+                # Convert to 16kHz mono WAV for Google ASR
+                cmd = ["ffmpeg", "-y", "-i", str(in_path), "-ar", "16000", "-ac", "1", str(out_path)]
+                res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if res.returncode == 0 and out_path.exists():
+                    r = sr.Recognizer()
+                    r.energy_threshold = 300
+                    with sr.AudioFile(str(out_path)) as source:
+                        audio_data = r.record(source)
+                        try:
+                            # Try recognition (default to Nigerian accent English)
+                            recognized = r.recognize_google(audio_data, language="en-NG")
+                            if recognized and recognized.strip():
+                                lang, conf = detect_language(recognized)
+                                logger.info(f"Server ASR recognized: '{recognized}' ({lang})")
+                                return recognized.strip(), lang, conf
+                        except sr.UnknownValueError:
+                            logger.info("Google ASR could not understand audio")
+                        except Exception as e:
+                            logger.warning(f"ASR recognition notice: {e}")
+    except Exception as e:
+        logger.warning(f"Audio payload decoding notice: {e}")
+
+    # 4. Graceful fallback for unintelligible audio
+    return "Could not transcribe audio clearly. Please repeat your query or type it below.", "nigerian_english", 0.70

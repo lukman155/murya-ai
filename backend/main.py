@@ -19,7 +19,7 @@ from backend.natlas_engine import (
 from backend.asr_engine import transcribe_audio, BENCHMARK_AUDIO_PROFILES
 from backend.tts_engine import synthesize_speech
 from backend.domain_services import (
-    resolve_banking_dispute, resolve_disco_complaint, get_recent_tickets
+    resolve_banking_dispute, resolve_disco_complaint, resolve_general_inquiry, get_recent_tickets
 )
 from backend.telephony_routes import telephony_router
 
@@ -84,7 +84,9 @@ async def resolve_text_endpoint(req: TextQueryRequest):
     
     # 3. Domain Resolution Execution
     caller_id = req.caller_id or "08031234567"
-    if entities.domain == "electricity_disco":
+    if entities.domain == "general_support":
+        resolution_dict = resolve_general_inquiry(caller_id=caller_id, intent=entities.intent)
+    elif entities.domain == "electricity_disco":
         resolution_dict = resolve_disco_complaint(
             caller_id=caller_id,
             intent=entities.intent,
@@ -101,13 +103,32 @@ async def resolve_text_endpoint(req: TextQueryRequest):
     resolution = ResolutionAction(**resolution_dict)
     t_resolve = time.time()
     
-    # 4. Multilingual Response Generation
-    resp_local, resp_en = generate_local_response(
-        language=lang,
-        domain=entities.domain,
-        intent=entities.intent,
-        resolution_data=resolution_dict
-    )
+    # 4. Multilingual Response Generation via Live N-ATLAS GPU
+    natlas_reply = None
+    if settings.NATLAS_API_URL:
+        try:
+            if entities.domain == "general_support":
+                natlas_prompt = req.text
+            else:
+                natlas_prompt = (
+                    f"Citizen in Nigeria says in {lang}: '{req.text}'. "
+                    f"Resolution action: {resolution_dict.get('action_type', '')} (Ref: {resolution_dict.get('ticket_id', '')}). "
+                    f"Please provide an empathetic customer service response in {lang}."
+                )
+            natlas_reply = query_natlas_llm(natlas_prompt, lang)
+        except Exception as e:
+            logger.warning(f"Live N-ATLAS GPU query note: {e}")
+
+    if natlas_reply:
+        resp_local = natlas_reply
+        resp_en = f"N-ATLAS GPU Live Output: {natlas_reply}"
+    else:
+        resp_local, resp_en = generate_local_response(
+            language=lang,
+            domain=entities.domain,
+            intent=entities.intent,
+            resolution_data=resolution_dict
+        )
     t_nlg = time.time()
     
     # 5. TTS Voice Synthesis
@@ -161,7 +182,8 @@ async def resolve_voice_endpoint(req: VoiceQueryRequest):
     transcript, detected_lang, confidence = transcribe_audio(
         req.audio_base64,
         audio_format=req.audio_format,
-        sample_hint=sample_hint
+        sample_hint=sample_hint,
+        transcription_hint=req.transcription_hint
     )
     t_asr = time.time()
     
@@ -175,7 +197,9 @@ async def resolve_voice_endpoint(req: VoiceQueryRequest):
     
     # 3. Domain Resolution
     caller_id = req.caller_id or "08031234567"
-    if entities.domain == "electricity_disco":
+    if entities.domain == "general_support":
+        resolution_dict = resolve_general_inquiry(caller_id=caller_id, intent=entities.intent)
+    elif entities.domain == "electricity_disco":
         resolution_dict = resolve_disco_complaint(
             caller_id=caller_id,
             intent=entities.intent,
@@ -192,13 +216,32 @@ async def resolve_voice_endpoint(req: VoiceQueryRequest):
     resolution = ResolutionAction(**resolution_dict)
     t_resolve = time.time()
     
-    # 4. N-ATLAS Localized Spoken Output
-    resp_local, resp_en = generate_local_response(
-        language=lang,
-        domain=entities.domain,
-        intent=entities.intent,
-        resolution_data=resolution_dict
-    )
+    # 4. N-ATLAS Localized Spoken Output (Try Live GPU First!)
+    natlas_reply = None
+    if settings.NATLAS_API_URL:
+        try:
+            if entities.domain == "general_support":
+                natlas_prompt = transcript
+            else:
+                natlas_prompt = (
+                    f"Citizen in Nigeria says in {lang}: '{transcript}'. "
+                    f"Resolution action: {resolution_dict.get('action_type', '')} (Ref: {resolution_dict.get('ticket_id', '')}). "
+                    f"Please provide an empathetic customer service response in {lang}."
+                )
+            natlas_reply = query_natlas_llm(natlas_prompt, lang)
+        except Exception as e:
+            logger.warning(f"Live N-ATLAS GPU query note: {e}")
+
+    if natlas_reply:
+        resp_local = natlas_reply
+        resp_en = f"N-ATLAS GPU Live Output: {natlas_reply}"
+    else:
+        resp_local, resp_en = generate_local_response(
+            language=lang,
+            domain=entities.domain,
+            intent=entities.intent,
+            resolution_data=resolution_dict
+        )
     t_nlg = time.time()
     
     # 5. Text-To-Speech Synthesis

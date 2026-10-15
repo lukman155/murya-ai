@@ -6,6 +6,8 @@ import re
 import json
 import logging
 import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from typing import Any
 from backend.config import settings
 
@@ -121,14 +123,26 @@ def extract_entities_and_intent(text: str, language: str) -> dict[str, Any]:
     is_power = any(contains_word_or_phrase(kw, text_lower) for kw in power_keywords) or (meter_number is not None)
     
     # Banking explicit overrides
-    banking_strong = ["pos", "transfer", "tura", "gbigbe", "mbufe", "debit", "reversal", "alert", "asusu", "akanti", "akaụntụ"]
-    if any(contains_word_or_phrase(b, text_lower) for b in banking_strong) and not any(contains_word_or_phrase(k, text_lower) for k in ["token", "meter", "mita", "feeder"]):
-        is_power = False
+    banking_strong = ["pos", "transfer", "tura", "gbigbe", "mbufe", "debit", "reversal", "alert", "asusu", "akanti", "akaụntụ", "kudi", "ego", "owo", "cash", "bank"]
+    is_banking = any(contains_word_or_phrase(b, text_lower) for b in banking_strong) or (amount is not None) or (rrn is not None)
 
-    domain = "electricity_disco" if is_power else "banking_pos"
+    # Greeting / General conversation detection
+    greetings = ["hello", "hi", "hey", "can you hear", "can u hear", "test", "who are you", "what can you do", "sannu", "bawo", "kedu", "good morning", "good afternoon", "good evening", "how are you"]
+    is_greeting = any(contains_word_or_phrase(g, text_lower) for g in greetings)
+
+    if is_power and not is_banking:
+        domain = "electricity_disco"
+    elif is_banking:
+        domain = "banking_pos"
+    elif is_greeting:
+        domain = "general_support"
+    else:
+        domain = "general_support"
     
     # Determine intent
-    if domain == "electricity_disco":
+    if domain == "general_support":
+        intent = "greeting_or_inquiry"
+    elif domain == "electricity_disco":
         if any(contains_word_or_phrase(w, text_lower) for w in ["tamper", "error", "kuskure", "koodu", "baje", "beeping", "reset"]):
             intent = "meter_tamper_error"
         elif any(contains_word_or_phrase(w, text_lower) for w in ["outage", "spark", "adugbo", "ungwarmu", "feeder", "transformer", "babu wuta", "ina ti ku", "kemgbe ụnyaahụ"]):
@@ -172,8 +186,21 @@ def generate_local_response(
     """
     details = resolution_data.get("details", {})
     action_type = resolution_data.get("action_type", "")
-    ticket_id = resolution_data.get("ticket_id", "REF-001")
-    
+    if domain == "general_support":
+        if language == "hausa":
+            resp_local = "Sannu! Ina jinka sosai. Ni ne MuryaAI, mai taimaka maka da matsalar kudi ko wutar lantarki ta N-ATLAS. Ta yaya zan taimake ka yau?"
+            resp_en = "Hello! Yes, I can hear you clearly. I am MuryaAI, how can I assist you with banking or electricity issues today?"
+        elif language == "yoruba":
+            resp_local = "E kaasan! Mo n gbo yin ketekete. Emi ni MuryaAI oluranlowo onibara. Bawo ni mo se le ran yin lowo lori oro owo tabi ina loni?"
+            resp_en = "Good day! I can hear you clearly. I am MuryaAI, how can I assist you with your banking or electricity issue today?"
+        elif language == "igbo":
+            resp_local = "Nnoo! Ana m anụ gị nke ọma. Abụ m MuryaAI, onye inyeaka ndị ahịa. Kedu ka m ga-esi nyere gị aka na nsogbu akụkọ ego ma ọ bụ ọkụ eletrik gị taa?"
+            resp_en = "Welcome! I can hear you clearly. I am MuryaAI, how can I assist you with your banking or electricity dispute today?"
+        else:
+            resp_local = "Hello! Yes, I can hear you loud and clear. I am MuryaAI, your customer resolution agent powered by N-ATLAS. How can I assist you with your banking or electricity issue today?"
+            resp_en = "Hello! Yes, I can hear you clearly. I am MuryaAI, your customer resolution agent powered by N-ATLAS. How can I assist you with your banking or electricity issue today?"
+        return resp_local, resp_en
+
     if domain == "electricity_disco":
         token = details.get("token", "5129-8472-1094-3382-7719")
         meter = details.get("meter_number", "01482910394")
@@ -290,7 +317,7 @@ def query_natlas_llm(prompt: str, language: str) -> str | None:
             "temperature": 0.2
         }
         try:
-            resp = requests.post(target_url, headers=headers, json=payload, timeout=20)
+            resp = requests.post(target_url, headers=headers, json=payload, timeout=20, verify=False)
             if resp.status_code == 200:
                 data = resp.json()
                 if "choices" in data and len(data["choices"]) > 0:
@@ -354,7 +381,7 @@ def test_endpoint_connection(api_url: str, api_key: str = "") -> dict[str, Any]:
     }
     
     try:
-        resp = requests.post(target_url, headers=headers, json=payload, timeout=8)
+        resp = requests.post(target_url, headers=headers, json=payload, timeout=8, verify=False)
         latency_ms = round((time.time() - t0) * 1000, 1)
         if resp.status_code == 200:
             data = resp.json()
