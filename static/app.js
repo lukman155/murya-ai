@@ -311,9 +311,7 @@ async function toggleRecording() {
         btn.classList.add("from-emerald-600", "to-teal-500");
         statusText.innerText = "Transcribing & resolving with N-ATLAS...";
         wave.classList.remove("recording-active");
-        wave.style.opacity = "0.4";
     }
-}
 }
 
 // Execute sample test
@@ -812,3 +810,10 @@ async function saveEndpointConfig() {
         closeEndpointModal();
     }, 1000);
 }
+
+// Expose modal and test functions to window scope
+window.openEndpointModal = openEndpointModal;
+window.closeEndpointModal = closeEndpointModal;
+window.testEndpointConnection = testEndpointConnection;
+window.saveEndpointConfig = saveEndpointConfig;
+

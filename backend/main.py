@@ -48,6 +48,10 @@ app.add_middleware(
 # Include telephony routes
 app.include_router(telephony_router)
 
+@app.get("/api/health")
+async def health_endpoint():
+    return {"status": "ok", "app": settings.APP_NAME, "version": settings.APP_VERSION}
+
 # In-memory stats counter
 STATS = {
     "total_calls": 482,
