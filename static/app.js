@@ -14,38 +14,53 @@ let currentChannel = "web";
 const FALLBACK_SAMPLES = [
     {
         "id": "hausa_pos",
+        "persona": "Mallam Haruna (Kaduna)",
+        "badge": "Failed POS ₦15,000",
         "language": "Hausa",
         "domain": "Banking / POS Dispute",
         "prompt": "An cire min kudi naira dubu goma sha biyar a POS amma ban samu kudi ba don Allah a taimaka min",
-        "english": "They deducted ₦15,000 from me at a POS but I received no cash, please assist me"
+        "english": "Deducted ₦15,000 at POS but got no cash, please assist me",
+        "impact": "NIBSS instant check & auto-reversal reference"
     },
     {
         "id": "yoruba_disco",
+        "persona": "Mama Folake (Bodija, Ibadan)",
+        "badge": "Missing Prepaid Power Token",
         "language": "Yoruba",
-        "domain": "Electricity / DisCo Token",
+        "domain": "Utilities / Electricity Token",
         "prompt": "Mo ra owo ina naira egberun marun lori mita mi 01482910394 sugbon mi o ri token gba e jowo e ran mi lowo",
-        "english": "I bought electricity of ₦5,000 for meter 01482910394 but did not receive token, please help"
-    },
-    {
-        "id": "igbo_pos",
-        "language": "Igbo",
-        "domain": "Banking / POS Dispute",
-        "prompt": "E weputara ego m naira puku iri abuo n'igwe POS taa mana anaraghi m ego biko nyere m aka",
-        "english": "₦20,000 was debited from my account at a POS today without cash dispensed, please help me"
+        "english": "Bought ₦5,000 power for meter 01482910394 but no token received",
+        "impact": "20-digit STS token generated via SMS in 1.8s"
     },
     {
         "id": "nigerian_english_transfer",
+        "persona": "Chidi (Lagos Dispatch Rider)",
+        "badge": "Hung NIP Transfer (₦20k)",
         "language": "Nigerian English",
         "domain": "Banking / Interbank Transfer",
         "prompt": "I do transfer of twenty thousand naira since yesterday night, dem debit me but my brother never see alert, abeg wetin dey happen",
-        "english": "I initiated a ₦20,000 transfer last night, I got debited but recipient received no alert"
+        "english": "Sent ₦20,000 last night, debited but recipient received no alert",
+        "impact": "NIBSS Session ID query & settlement confirmation"
+    },
+    {
+        "id": "igbo_pos",
+        "persona": "Mazi Emeka (Ariaria Market, Aba)",
+        "badge": "Declined POS Cash-out (₦20k)",
+        "language": "Igbo",
+        "domain": "Banking / POS Dispute",
+        "prompt": "E weputara ego m naira puku iri abuo n'igwe POS taa mana anaraghi m ego biko nyere m aka",
+        "english": "Debited ₦20,000 at POS with no cash dispensed, please help",
+        "impact": "CBN 24h auto-reversal mandate logged"
     },
     {
         "id": "hausa_disco",
+        "persona": "Musa Danladi (Kano)",
+        "badge": "Prepaid Meter Token ₦3,000",
         "language": "Hausa",
-        "domain": "Electricity / DisCo Token",
+        "domain": "Utilities / Electricity Token",
         "prompt": "Na biya kudin wutar lantarki naira dubu uku a mitar 45190283719 amma ban ga lambar token ba",
-        "english": "I paid ₦3,000 for electricity on meter 45190283719 but haven't seen token code"
+        "english": "Paid ₦3,000 for meter 45190283719 but no token received",
+        "impact": "KEDCO meter token dispatch via SMS"
     }
 ];
 
@@ -89,14 +104,26 @@ async function initSampleButtons() {
     container.innerHTML = "";
     samples.forEach(s => {
         const btn = document.createElement("button");
-        btn.className = "text-left p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-emerald-600/50 hover:bg-slate-900 transition flex flex-col justify-between group cursor-pointer";
+        btn.className = "text-left p-3 rounded-xl bg-slate-950/70 border border-slate-800 hover:border-emerald-500/60 hover:bg-slate-900 transition flex flex-col justify-between group cursor-pointer shadow-sm relative overflow-hidden";
         btn.innerHTML = `
             <div class="flex items-center justify-between w-full mb-1">
-                <span class="text-xs font-bold text-emerald-400 group-hover:text-emerald-300">${s.language}</span>
-                <span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-400">${s.domain.split('/')[0].trim()}</span>
+                <div class="flex items-center space-x-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span class="text-xs font-bold text-slate-200 group-hover:text-emerald-300 transition">${s.persona || s.language}</span>
+                </div>
+                <span class="text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold bg-emerald-950/80 border border-emerald-800/60 text-emerald-300">${s.language}</span>
             </div>
-            <p class="text-xs text-slate-300 font-medium line-clamp-1">"${s.prompt}"</p>
-            <span class="text-[10px] text-slate-500 mt-1 line-clamp-1 italic">${s.english}</span>
+            <div class="mb-1">
+                <span class="text-[11px] font-semibold text-amber-300/90 block">${s.badge || s.domain}</span>
+                <p class="text-xs text-slate-300 font-medium line-clamp-1 mt-0.5">"${s.prompt}"</p>
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500 border-t border-slate-800/80 pt-1 mt-1">
+                <span class="italic line-clamp-1 flex-1 mr-2">${s.english}</span>
+                <span class="text-emerald-400 font-mono font-medium shrink-0 flex items-center">
+                    <svg class="w-2.5 h-2.5 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    Resolve
+                </span>
+            </div>
         `;
         btn.onclick = () => runSampleTest(s);
         container.appendChild(btn);
@@ -763,7 +790,11 @@ function setLoadingState(loading) {
     const statusText = document.getElementById("record-status");
     const loader = document.getElementById("resolution-loader");
     const btnSubmit = document.getElementById("btn-submit-text");
+    const manualInput = document.getElementById("manual-text-input");
+    const btnRecord = document.getElementById("btn-record");
+    const langSelect = document.getElementById("lang-select");
 
+    // 1. Full-card Reasoning Overlay
     if (loader) {
         if (loading) {
             loader.classList.remove("hidden");
@@ -772,21 +803,83 @@ function setLoadingState(loading) {
         }
     }
 
+    // 2. Submit Button
     if (btnSubmit) {
+        btnSubmit.disabled = loading;
         if (loading) {
-            btnSubmit.disabled = true;
             btnSubmit.innerHTML = `<span class="inline-flex items-center space-x-1.5"><svg class="animate-spin -ml-1 mr-1.5 h-4 w-4 text-slate-950" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Reasoning...</span>`;
             btnSubmit.classList.add("opacity-75", "cursor-not-allowed");
         } else {
-            btnSubmit.disabled = false;
             btnSubmit.innerHTML = "Resolve";
             btnSubmit.classList.remove("opacity-75", "cursor-not-allowed");
         }
     }
 
+    // 3. Manual Text Input Box
+    if (manualInput) {
+        manualInput.disabled = loading;
+        if (loading) {
+            manualInput.classList.add("opacity-50", "cursor-not-allowed", "bg-slate-900/60");
+            manualInput.setAttribute("title", "Waiting for N-ATLAS GPU resolution...");
+        } else {
+            manualInput.classList.remove("opacity-50", "cursor-not-allowed", "bg-slate-900/60");
+            manualInput.removeAttribute("title");
+        }
+    }
+
+    // 4. Microphone Record Button
+    if (btnRecord) {
+        btnRecord.disabled = loading;
+        if (loading) {
+            btnRecord.classList.add("pointer-events-none", "opacity-40", "cursor-not-allowed");
+        } else {
+            btnRecord.classList.remove("pointer-events-none", "opacity-40", "cursor-not-allowed");
+        }
+    }
+
+    // 5. Language Dropdown Selector
+    if (langSelect) {
+        langSelect.disabled = loading;
+        if (loading) {
+            langSelect.classList.add("opacity-50", "cursor-not-allowed");
+        } else {
+            langSelect.classList.remove("opacity-50", "cursor-not-allowed");
+        }
+    }
+
+    // 6. Benchmark Quick-Test Buttons
+    const sampleButtons = document.querySelectorAll("#sample-buttons-container button");
+    sampleButtons.forEach(btn => {
+        btn.disabled = loading;
+        if (loading) {
+            btn.classList.add("pointer-events-none", "opacity-40", "cursor-not-allowed");
+        } else {
+            btn.classList.remove("pointer-events-none", "opacity-40", "cursor-not-allowed");
+        }
+    });
+
+    // 7. Channel Simulator Tabs
+    const channelTabs = document.querySelectorAll(".channel-tab");
+    channelTabs.forEach(tab => {
+        if (loading) {
+            tab.classList.add("pointer-events-none", "opacity-50");
+        } else {
+            tab.classList.remove("pointer-events-none", "opacity-50");
+        }
+    });
+
+    // 8. Replay Audio Button
+    const btnReplay = document.getElementById("btn-replay-audio");
+    if (btnReplay && loading) {
+        btnReplay.classList.add("opacity-50", "pointer-events-none");
+    } else if (btnReplay) {
+        btnReplay.classList.remove("opacity-50", "pointer-events-none");
+    }
+
+    // 9. Status Text Feedback
     if (statusText) {
         if (loading) {
-            statusText.innerText = "N-ATLAS GPU Reasoning active (ASR -> Sovereign LLM -> NIBSS/DisCo)...";
+            statusText.innerText = "N-ATLAS GPU reasoning in progress... Please wait.";
         } else {
             statusText.innerText = "Click to Speak in Hausa, Yoruba, Igbo, or Pidgin";
         }

@@ -314,38 +314,53 @@ async def samples_endpoint():
     return [
         {
             "id": "hausa_pos",
+            "persona": "Mallam Haruna (Kaduna)",
+            "badge": "Failed POS ₦15,000",
             "language": "Hausa",
             "domain": "Banking / POS Dispute",
             "prompt": "An cire min kudi naira dubu goma sha biyar a POS amma ban samu kudi ba don Allah a taimaka min",
-            "english": "They deducted ₦15,000 from me at a POS but I received no cash, please assist me"
+            "english": "Deducted ₦15,000 at POS but got no cash, please assist me",
+            "impact": "NIBSS instant check & auto-reversal reference"
         },
         {
             "id": "yoruba_disco",
+            "persona": "Mama Folake (Bodija, Ibadan)",
+            "badge": "Missing Prepaid Power Token",
             "language": "Yoruba",
-            "domain": "Electricity / DisCo Token",
+            "domain": "Utilities / Electricity Token",
             "prompt": "Mo ra owo ina naira egberun marun lori mita mi 01482910394 sugbon mi o ri token gba e jowo e ran mi lowo",
-            "english": "I bought electricity of ₦5,000 for meter 01482910394 but did not receive token, please help"
-        },
-        {
-            "id": "igbo_pos",
-            "language": "Igbo",
-            "domain": "Banking / POS Dispute",
-            "prompt": "E weputara ego m naira puku iri abuo n'igwe POS taa mana anaraghi m ego biko nyere m aka",
-            "english": "₦20,000 was debited from my account at a POS today without cash dispensed, please help me"
+            "english": "Bought ₦5,000 power for meter 01482910394 but no token received",
+            "impact": "20-digit STS token generated via SMS in 1.8s"
         },
         {
             "id": "nigerian_english_transfer",
+            "persona": "Chidi (Lagos Dispatch Rider)",
+            "badge": "Hung NIP Transfer (₦20k)",
             "language": "Nigerian English",
             "domain": "Banking / Interbank Transfer",
             "prompt": "I do transfer of twenty thousand naira since yesterday night, dem debit me but my brother never see alert, abeg wetin dey happen",
-            "english": "I initiated a ₦20,000 transfer last night, I got debited but recipient received no alert"
+            "english": "Sent ₦20,000 last night, debited but recipient received no alert",
+            "impact": "NIBSS Session ID query & settlement confirmation"
+        },
+        {
+            "id": "igbo_pos",
+            "persona": "Mazi Emeka (Ariaria Market, Aba)",
+            "badge": "Declined POS Cash-out (₦20k)",
+            "language": "Igbo",
+            "domain": "Banking / POS Dispute",
+            "prompt": "E weputara ego m naira puku iri abuo n'igwe POS taa mana anaraghi m ego biko nyere m aka",
+            "english": "Debited ₦20,000 at POS with no cash dispensed, please help",
+            "impact": "CBN 24h auto-reversal mandate logged"
         },
         {
             "id": "hausa_disco",
+            "persona": "Musa Danladi (Kano)",
+            "badge": "Prepaid Meter Token ₦3,000",
             "language": "Hausa",
-            "domain": "Electricity / DisCo Token",
+            "domain": "Utilities / Electricity Token",
             "prompt": "Na biya kudin wutar lantarki naira dubu uku a mitar 45190283719 amma ban ga lambar token ba",
-            "english": "I paid ₦3,000 for electricity on meter 45190283719 but haven't seen token code"
+            "english": "Paid ₦3,000 for meter 45190283719 but no token received",
+            "impact": "KEDCO meter token dispatch via SMS"
         }
     ]
 
