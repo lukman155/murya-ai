@@ -183,7 +183,8 @@ async def resolve_voice_endpoint(req: VoiceQueryRequest):
         req.audio_base64,
         audio_format=req.audio_format,
         sample_hint=sample_hint,
-        transcription_hint=req.transcription_hint
+        transcription_hint=req.transcription_hint,
+        language_hint=req.language
     )
     t_asr = time.time()
     

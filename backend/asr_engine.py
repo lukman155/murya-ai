@@ -46,13 +46,21 @@ BENCHMARK_AUDIO_PROFILES = {
     }
 }
 
+LANGUAGE_CODE_MAP = {
+    "hausa": ["ha-NG", "ha"],
+    "yoruba": ["yo-NG", "yo"],
+    "igbo": ["ig-NG", "ig"],
+    "nigerian_english": ["en-NG", "en-US"]
+}
+
 def transcribe_audio(
     audio_base64: str,
     audio_format: str = "audio/webm",
     sample_hint: str | None = None,
-    transcription_hint: str | None = None
+    transcription_hint: str | None = None,
+    language_hint: str | None = None
 ) -> Tuple[str, str, float]:
-    """Transcribes an audio stream into text and identifies the spoken Nigerian dialect.
+    """Transcribes an audio stream directly into text and identifies the spoken Nigerian dialect.
     
     Returns:
         (transcribed_text, detected_language, confidence)
@@ -64,42 +72,50 @@ def transcribe_audio(
         profile = BENCHMARK_AUDIO_PROFILES[sample_hint]
         return profile["text"], profile["lang"], 0.96
 
-    # 2. If client provided high-fidelity Web Speech recognition transcription
-    if transcription_hint and transcription_hint.strip():
-        lang, conf = detect_language(transcription_hint.strip())
-        logger.info(f"Using client speech transcription: '{transcription_hint.strip()}' ({lang})")
-        return transcription_hint.strip(), lang, conf
-
-    # 3. Server-side ASR decoding from raw audio bytes
+    # 2. Server-side ASR decoding from raw audio bytes
     try:
         audio_bytes = base64.b64decode(audio_base64.split(",")[-1])
-        if len(audio_bytes) > 100:
+        if len(audio_bytes) > 200:
             with tempfile.TemporaryDirectory() as td:
                 in_path = Path(td) / "input_audio.webm"
                 out_path = Path(td) / "output_audio.wav"
                 in_path.write_bytes(audio_bytes)
 
-                # Convert to 16kHz mono WAV for Google ASR
+                # Convert to 16kHz mono PCM WAV with ffmpeg
                 cmd = ["ffmpeg", "-y", "-i", str(in_path), "-ar", "16000", "-ac", "1", str(out_path)]
                 res = subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 if res.returncode == 0 and out_path.exists():
                     r = sr.Recognizer()
-                    r.energy_threshold = 300
+                    r.energy_threshold = 250
                     with sr.AudioFile(str(out_path)) as source:
                         audio_data = r.record(source)
-                        try:
-                            # Try recognition (default to Nigerian accent English)
-                            recognized = r.recognize_google(audio_data, language="en-NG")
-                            if recognized and recognized.strip():
-                                lang, conf = detect_language(recognized)
-                                logger.info(f"Server ASR recognized: '{recognized}' ({lang})")
-                                return recognized.strip(), lang, conf
-                        except sr.UnknownValueError:
-                            logger.info("Google ASR could not understand audio")
-                        except Exception as e:
-                            logger.warning(f"ASR recognition notice: {e}")
+
+                        # Determine target language codes for ASR
+                        target_codes = []
+                        if language_hint and language_hint.lower() in LANGUAGE_CODE_MAP:
+                            target_codes = LANGUAGE_CODE_MAP[language_hint.lower()]
+                        else:
+                            # Auto-detect: probe Hausa, Yoruba, Nigerian English, Igbo
+                            target_codes = ["en-NG", "ha-NG", "yo-NG", "ig-NG"]
+
+                        for code in target_codes:
+                            try:
+                                recognized = r.recognize_google(audio_data, language=code)
+                                if recognized and len(recognized.strip()) > 1:
+                                    detected_lang, conf = detect_language(recognized.strip())
+                                    logger.info(f"Direct Audio ASR Recognized ({code}): '{recognized}' -> {detected_lang}")
+                                    return recognized.strip(), detected_lang, conf
+                            except sr.UnknownValueError:
+                                continue
+                            except Exception as e:
+                                logger.debug(f"ASR probe {code} note: {e}")
+                                continue
     except Exception as e:
         logger.warning(f"Audio payload decoding notice: {e}")
 
-    # 4. Graceful fallback for unintelligible audio
-    return "Could not transcribe audio clearly. Please repeat your query or type it below.", "nigerian_english", 0.70
+    # 3. If audio was completely silent or unintelligible
+    if transcription_hint and transcription_hint.strip():
+        lang, conf = detect_language(transcription_hint.strip())
+        return transcription_hint.strip(), lang, conf
+
+    return "Could not transcribe audio clearly. Please speak into the microphone or select your language from the dropdown.", "nigerian_english", 0.60

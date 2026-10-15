@@ -53,7 +53,7 @@ function getApiBase() {
     let custom = localStorage.getItem("murya_backend_url");
     if (custom) return custom.replace(/\/$/, "");
     if (window.location.hostname.includes("hf.space") || window.location.hostname.includes("huggingface.co")) {
-        return "https://milwaukee-ping-opinion-loans.trycloudflare.com";
+        return "https://motor-concerning-soc-widescreen.trycloudflare.com";
     }
     return "";
 }
@@ -258,60 +258,22 @@ function updateChannelSimulator(channel) {
     }
 }
 
-let speechRecognitionInstance = null;
-let liveTranscribedSpeech = "";
-
-// Toggle browser audio recording with real-time Speech Recognition
+// Toggle browser audio recording - streams clean raw audio directly to N-ATLAS ASR pipeline
 async function toggleRecording() {
     const btn = document.getElementById("btn-record");
     const statusText = document.getElementById("record-status");
     const wave = document.getElementById("mic-wave");
 
     if (!isRecording) {
-        liveTranscribedSpeech = "";
         try {
-            // 1. Browser Speech Recognition (Web Speech API)
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (SpeechRecognition) {
-                try {
-                    speechRecognitionInstance = new SpeechRecognition();
-                    speechRecognitionInstance.continuous = true;
-                    speechRecognitionInstance.interimResults = true;
-                    
-                    const selectedLang = document.getElementById("lang-select").value;
-                    if (selectedLang === "hausa") speechRecognitionInstance.lang = "ha-NG";
-                    else if (selectedLang === "yoruba") speechRecognitionInstance.lang = "yo-NG";
-                    else if (selectedLang === "igbo") speechRecognitionInstance.lang = "ig-NG";
-                    else speechRecognitionInstance.lang = "en-NG";
-
-                    speechRecognitionInstance.onresult = (event) => {
-                        let interim = "";
-                        for (let i = event.resultIndex; i < event.results.length; ++i) {
-                            if (event.results[i].isFinal) {
-                                liveTranscribedSpeech += event.results[i][0].transcript + " ";
-                            } else {
-                                interim += event.results[i][0].transcript;
-                            }
-                        }
-                        const currentText = (liveTranscribedSpeech + interim).trim();
-                        if (currentText) {
-                            document.getElementById("manual-text-input").value = currentText;
-                            statusText.innerText = `Heard: "${currentText}"`;
-                        }
-                    };
-
-                    speechRecognitionInstance.onerror = (e) => {
-                        console.info("Speech recognition info:", e.error);
-                    };
-
-                    speechRecognitionInstance.start();
-                } catch (e) {
-                    console.info("SpeechRecognition start notice:", e.message);
-                }
-            }
-
-            // 2. MediaRecorder for raw audio stream
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    channelCount: 1,
+                    sampleRate: 16000
+                } 
+            });
             mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
 
@@ -325,36 +287,33 @@ async function toggleRecording() {
                 reader.readAsDataURL(audioBlob);
                 reader.onloadend = () => {
                     const base64Audio = reader.result;
-                    const finalTranscript = (liveTranscribedSpeech || document.getElementById("manual-text-input").value).trim();
-                    submitVoiceQuery(base64Audio, finalTranscript);
+                    submitVoiceQuery(base64Audio);
                 };
             };
 
-            mediaRecorder.start();
+            mediaRecorder.start(200);
             isRecording = true;
             btn.classList.add("ring-red-500/50", "from-red-600", "to-rose-500");
             btn.classList.remove("from-emerald-600", "to-teal-500");
-            statusText.innerText = "Listening... Speak your complaint now (Click to stop)";
+            statusText.innerText = "Listening... Speak your complaint in Hausa, Yoruba, Igbo, or English (Click to stop)";
             wave.classList.add("recording-active");
             wave.style.opacity = "1";
         } catch (err) {
-            console.warn("Microphone not permitted or unavailable:", err);
+            console.warn("Microphone access notice:", err);
             statusText.innerText = "Mic blocked. You can type in the box below and click Submit!";
         }
     } else {
-        if (speechRecognitionInstance) {
-            try { speechRecognitionInstance.stop(); } catch (e) {}
-        }
         if (mediaRecorder && mediaRecorder.state !== "inactive") {
             mediaRecorder.stop();
         }
         isRecording = false;
         btn.classList.remove("ring-red-500/50", "from-red-600", "to-rose-500");
         btn.classList.add("from-emerald-600", "to-teal-500");
-        statusText.innerText = "Processing with N-ATLAS pipeline...";
+        statusText.innerText = "Transcribing & resolving with N-ATLAS...";
         wave.classList.remove("recording-active");
         wave.style.opacity = "0.4";
     }
+}
 }
 
 // Execute sample test
