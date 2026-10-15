@@ -305,8 +305,14 @@
                 </div>
 
                 <div class="space-y-1.5">
-                    <label class="block font-semibold text-slate-300">API Key / Token (Optional):</label>
+                    <label class="block font-semibold text-slate-300">N-ATLAS API Key / Bearer Token (Optional):</label>
                     <input type="password" id="modal-input-key" placeholder="Optional bearer token or HuggingFace token" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block font-semibold text-slate-300">Groq API Key (For Whisper Speech-to-Text & Sovereign LLM Reasoning):</label>
+                    <input type="password" id="modal-input-groq" placeholder="gsk_..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    <p class="text-[11px] text-slate-400">Used for client-side Whisper Large v3 ASR and high-speed sovereign LLM fallback.</p>
                 </div>
 
                 <!-- Live Connection Feedback Box -->

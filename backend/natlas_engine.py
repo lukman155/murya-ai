@@ -327,7 +327,6 @@ def query_natlas_llm(prompt: str, language: str) -> str | None:
             logger.warning(f"Kaggle/OpenAI endpoint returned {resp.status_code}: {resp.text[:200]}")
         except Exception as e:
             logger.warning(f"Live GPU endpoint connection note: {e}")
-            return None
 
     # 2. Handle Hugging Face Inference API
     elif "huggingface.co" in api_url and settings.NATLAS_API_KEY:
@@ -349,6 +348,42 @@ def query_natlas_llm(prompt: str, language: str) -> str | None:
                     return result[0].get("generated_text", "").strip()
         except Exception as e:
             logger.warning(f"HuggingFace inference note: {e}")
+
+    # 3. Intelligent High-Speed Sovereign LLM fallback via Groq
+    groq_key = settings.GROQ_API_KEY
+    if groq_key:
+        try:
+            groq_url = "https://api.groq.com/openai/v1/chat/completions"
+            groq_headers = {
+                "Authorization": f"Bearer {groq_key}",
+                "Content-Type": "application/json"
+            }
+            groq_payload = {
+                "model": "qwen/qwen3.8-27b",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": (
+                            f"{system_instruction}\n"
+                            f"You are MuryaAI, an intelligent customer resolution agent for Nigeria. "
+                            f"Generate a direct, empathetic, and natural spoken response in {language}. "
+                            f"Do NOT return static placeholders or generic greetings. Resolve the inquiry naturally."
+                        )
+                    },
+                    {"role": "user", "content": prompt}
+                ],
+                "max_tokens": 200,
+                "temperature": 0.4
+            }
+            g_resp = requests.post(groq_url, headers=groq_headers, json=groq_payload, timeout=8)
+            if g_resp.status_code == 200:
+                g_data = g_resp.json()
+                if "choices" in g_data and len(g_data["choices"]) > 0:
+                    content = g_data["choices"][0]["message"]["content"]
+                    logger.info("Generated sovereign LLM response via Groq fallback")
+                    return content.strip()
+        except Exception as e:
+            logger.warning(f"Groq LLM fallback note: {e}")
 
     return None
 

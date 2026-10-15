@@ -52,6 +52,10 @@ app.include_router(telephony_router)
 async def health_endpoint():
     return {"status": "ok", "app": settings.APP_NAME, "version": settings.APP_VERSION}
 
+@app.get("/api/config/keys")
+async def config_keys_endpoint():
+    return {"groq_key": settings.GROQ_API_KEY}
+
 # In-memory stats counter
 STATS = {
     "total_calls": 482,
@@ -107,9 +111,9 @@ async def resolve_text_endpoint(req: TextQueryRequest):
     resolution = ResolutionAction(**resolution_dict)
     t_resolve = time.time()
     
-    # 4. Multilingual Response Generation via Live N-ATLAS GPU
+    # 4. Multilingual Response Generation via Live N-ATLAS GPU / Sovereign LLM
     natlas_reply = None
-    if settings.NATLAS_API_URL:
+    if settings.NATLAS_API_URL or settings.GROQ_API_KEY:
         try:
             if entities.domain == "general_support":
                 natlas_prompt = req.text
@@ -221,9 +225,9 @@ async def resolve_voice_endpoint(req: VoiceQueryRequest):
     resolution = ResolutionAction(**resolution_dict)
     t_resolve = time.time()
     
-    # 4. N-ATLAS Localized Spoken Output (Try Live GPU First!)
+    # 4. N-ATLAS Localized Spoken Output (Try Live GPU / Sovereign LLM First!)
     natlas_reply = None
-    if settings.NATLAS_API_URL:
+    if settings.NATLAS_API_URL or settings.GROQ_API_KEY:
         try:
             if entities.domain == "general_support":
                 natlas_prompt = transcript
