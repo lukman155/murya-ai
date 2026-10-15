@@ -74,7 +74,7 @@ function getApiBase() {
     }
     if (custom) return custom.replace(/\/$/, "");
     if (window.location.hostname.includes("hf.space") || window.location.hostname.includes("huggingface.co")) {
-        return "https://continuously-world-branches-ranger.trycloudflare.com";
+        return "https://years-margaret-sec-distances.trycloudflare.com";
     }
     return "";
 }
