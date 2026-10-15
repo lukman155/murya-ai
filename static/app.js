@@ -55,7 +55,7 @@ function getApiBase() {
     let custom = localStorage.getItem("murya_backend_url");
     if (custom) return custom.replace(/\/$/, "");
     if (window.location.hostname.includes("hf.space") || window.location.hostname.includes("huggingface.co")) {
-        return "https://offer-area-appearance-shanghai.trycloudflare.com";
+        return "https://watts-lending-mic-photographic.trycloudflare.com";
     }
     return "";
 }
