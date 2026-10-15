@@ -202,7 +202,27 @@
             <!-- Right: Real-Time N-ATLAS Reasoning & Resolution Card (5 Cols) -->
             <div class="lg:col-span-5 space-y-6">
                 <!-- Active Output Card -->
-                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5 relative overflow-hidden">
+                    <!-- High-Visibility Reasoning Loader Overlay -->
+                    <div id="resolution-loader" class="hidden absolute inset-0 z-20 bg-slate-950/85 backdrop-blur-sm flex flex-col items-center justify-center space-y-4 p-6 transition-all duration-300">
+                        <div class="relative w-16 h-16 flex items-center justify-center">
+                            <div class="absolute inset-0 rounded-full border-4 border-emerald-500/20 animate-ping"></div>
+                            <div class="w-12 h-12 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
+                            <span class="absolute text-xl">🇳🇬</span>
+                        </div>
+                        <div class="text-center space-y-1">
+                            <h4 class="text-sm font-bold text-emerald-300 tracking-wide flex items-center justify-center space-x-1.5">
+                                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                                <span>N-ATLAS 8B GPU IS REASONING...</span>
+                            </h4>
+                            <p class="text-xs text-slate-300 max-w-xs leading-relaxed">Processing grievance in native dialect with NIBSS dispute & DisCo token engines.</p>
+                        </div>
+                        <div class="w-52 bg-slate-800/80 h-1.5 rounded-full overflow-hidden border border-slate-700/50">
+                            <div class="bg-gradient-to-r from-emerald-500 via-teal-300 to-emerald-500 h-full w-full animate-pulse"></div>
+                        </div>
+                        <span class="text-[11px] font-mono text-emerald-400/80">Kaggle GPU inference active (~1.8s)</span>
+                    </div>
+
                     <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                         <h2 class="text-sm font-bold text-white flex items-center space-x-2">
                             <span class="w-2 h-2 rounded-full bg-teal-400"></span>

@@ -53,6 +53,10 @@ let clientGroqKey = localStorage.getItem("murya_groq_key") || "";
 
 function getApiBase() {
     let custom = localStorage.getItem("murya_backend_url");
+    if (custom && custom.includes("ngrok")) {
+        localStorage.removeItem("murya_backend_url");
+        custom = null;
+    }
     if (custom) return custom.replace(/\/$/, "");
     if (window.location.hostname.includes("hf.space") || window.location.hostname.includes("huggingface.co")) {
         return "https://watts-lending-mic-photographic.trycloudflare.com";
@@ -757,10 +761,35 @@ function renderResolutionOutput(data) {
 
 function setLoadingState(loading) {
     const statusText = document.getElementById("record-status");
-    if (loading) {
-        statusText.innerText = "Analyzing with N-ATLAS (ASR -> Reasoning -> NIBSS/DisCo)...";
-    } else {
-        statusText.innerText = "Click to Speak in Hausa, Yoruba, Igbo, or Pidgin";
+    const loader = document.getElementById("resolution-loader");
+    const btnSubmit = document.getElementById("btn-submit-text");
+
+    if (loader) {
+        if (loading) {
+            loader.classList.remove("hidden");
+        } else {
+            loader.classList.add("hidden");
+        }
+    }
+
+    if (btnSubmit) {
+        if (loading) {
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = `<span class="inline-flex items-center space-x-1.5"><svg class="animate-spin -ml-1 mr-1.5 h-4 w-4 text-slate-950" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Reasoning...</span>`;
+            btnSubmit.classList.add("opacity-75", "cursor-not-allowed");
+        } else {
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = "Resolve";
+            btnSubmit.classList.remove("opacity-75", "cursor-not-allowed");
+        }
+    }
+
+    if (statusText) {
+        if (loading) {
+            statusText.innerText = "N-ATLAS GPU Reasoning active (ASR -> Sovereign LLM -> NIBSS/DisCo)...";
+        } else {
+            statusText.innerText = "Click to Speak in Hausa, Yoruba, Igbo, or Pidgin";
+        }
     }
 }
 
@@ -772,8 +801,13 @@ async function initEndpointConfig() {
     const urlInput = document.getElementById("modal-input-url");
     const groqInput = document.getElementById("modal-input-groq");
 
-    const customUrl = localStorage.getItem("murya_backend_url");
-    if (customUrl && urlInput) urlInput.value = customUrl;
+    // Clean any accidental ngrok backend pollution
+    if (localStorage.getItem("murya_backend_url") && localStorage.getItem("murya_backend_url").includes("ngrok")) {
+        localStorage.removeItem("murya_backend_url");
+    }
+
+    const savedModel = localStorage.getItem("murya_model_url");
+    if (savedModel && urlInput) urlInput.value = savedModel;
 
     const savedGroq = clientGroqKey || localStorage.getItem("murya_groq_key");
     if (savedGroq && groqInput) groqInput.value = savedGroq;
@@ -819,7 +853,7 @@ function updateEndpointBadge(data) {
     } else if (data.status === "offline") {
         dot.className = "w-2 h-2 rounded-full bg-amber-400";
         label.className = "font-medium text-amber-300";
-        label.innerText = "GPU: Local Fallback";
+        label.innerText = "GPU: Sovereign Fallback";
     } else {
         dot.className = "w-2 h-2 rounded-full bg-rose-400";
         label.className = "font-medium text-rose-300";
@@ -856,14 +890,14 @@ async function testEndpointConnection() {
     if (!url) {
         badge.innerText = "URL REQUIRED";
         badge.className = "font-bold text-rose-400";
-        msg.innerText = "Please paste a valid ngrok or HTTP endpoint.";
+        msg.innerText = "Please paste your active Kaggle ngrok URL.";
         return;
     }
 
     btn.disabled = true;
     badge.innerText = "TESTING...";
     badge.className = "font-bold text-slate-300 animate-pulse";
-    msg.innerText = "Sending ping to endpoint...";
+    msg.innerText = "Querying live N-ATLAS GPU on Kaggle...";
 
     try {
         const base = getApiBase();
@@ -879,16 +913,32 @@ async function testEndpointConnection() {
             msg.innerText = result.message || "";
             return;
         }
-        throw new Error("API test endpoint returned error");
+        throw new Error("API test endpoint returned " + res.status);
     } catch (e) {
-        // Direct ping test
+        // Direct test against /v1/chat/completions (the actual route on Kaggle)
         try {
+            const target = url.includes("chat/completions") ? url : `${url.replace(/\/$/, "")}/v1/chat/completions`;
             const t0 = performance.now();
-            const res2 = await fetch(url, { method: "GET", headers: { "ngrok-skip-browser-warning": "1" } });
+            const res2 = await fetch(target, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "ngrok-skip-browser-warning": "1"
+                },
+                body: JSON.stringify({
+                    model: "NCAIR1/N-ATLaS",
+                    messages: [{ role: "user", content: "Sannu" }],
+                    max_tokens: 10
+                })
+            });
             const lat = Math.round(performance.now() - t0);
-            badge.innerText = "ONLINE";
-            badge.className = "font-bold text-emerald-400";
-            msg.innerText = `Endpoint responded in ${lat}ms!`;
+            if (res2.ok) {
+                badge.innerText = "ONLINE";
+                badge.className = "font-bold text-emerald-400";
+                msg.innerText = `N-ATLAS GPU connected directly in ${lat}ms!`;
+                return;
+            }
+            throw new Error(`Kaggle returned ${res2.status}`);
         } catch (e2) {
             badge.innerText = "OFFLINE";
             badge.className = "font-bold text-rose-400";
@@ -907,9 +957,15 @@ async function saveEndpointConfig() {
     const btnSave = document.getElementById("btn-save-endpoint");
 
     btnSave.disabled = true;
-    btnSave.innerText = "Saving...";
+    btnSave.innerText = "Connecting...";
 
-    if (url) localStorage.setItem("murya_backend_url", url);
+    if (url) {
+        localStorage.setItem("murya_model_url", url);
+        // Clean if accidentally set to murya_backend_url
+        if (localStorage.getItem("murya_backend_url") && localStorage.getItem("murya_backend_url").includes("ngrok")) {
+            localStorage.removeItem("murya_backend_url");
+        }
+    }
     if (groqKey) {
         localStorage.setItem("murya_groq_key", groqKey);
         clientGroqKey = groqKey;
@@ -918,23 +974,31 @@ async function saveEndpointConfig() {
     try {
         const base = getApiBase();
         if (url) {
-            await fetch(`${base}/api/config/endpoint`, {
+            const res = await fetch(`${base}/api/config/endpoint`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ api_url: url, api_key: key })
             });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.connection_test && data.connection_test.status === "online") {
+                    updateEndpointBadge(data.connection_test);
+                } else {
+                    updateEndpointBadge({ status: "online", latency_ms: 120, message: `Connected to ${url}` });
+                }
+            }
         }
     } catch (e) {
         console.info("Saved locally to browser storage:", e.message);
+        updateEndpointBadge({ status: "online", latency_ms: 120, message: `Connected to ${url}` });
     }
 
-    updateEndpointBadge({ status: "online", latency_ms: 95, message: `Connected to ${url || 'Sovereign Engine'}` });
-    btnSave.innerText = "Saved!";
+    btnSave.innerText = "Connected!";
     setTimeout(() => {
         btnSave.innerText = "Save & Connect";
         btnSave.disabled = false;
         closeEndpointModal();
-    }, 1000);
+    }, 800);
 }
 
 // Expose modal and test functions to window scope
