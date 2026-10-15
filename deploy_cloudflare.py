@@ -54,8 +54,8 @@ def main():
     else:
         print("✅ MuryaAI backend is already running on http://localhost:8000")
 
-    print("\n🌐 Establishing Cloudflare Zero-Trust Tunnel to global edge...")
-    tunnel_cmd = [str(CLOUDFLARED_BIN), "tunnel", "--url", "http://localhost:8000"]
+    print("\n🌐 Establishing Cloudflare Zero-Trust Tunnel to global edge (HTTP/2)...")
+    tunnel_cmd = [str(CLOUDFLARED_BIN), "tunnel", "--protocol", "http2", "--url", "http://localhost:8000"]
     
     tunnel_proc = subprocess.Popen(
         tunnel_cmd,
