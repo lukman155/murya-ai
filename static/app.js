@@ -53,7 +53,7 @@ function getApiBase() {
     let custom = localStorage.getItem("murya_backend_url");
     if (custom) return custom.replace(/\/$/, "");
     if (window.location.hostname.includes("hf.space") || window.location.hostname.includes("huggingface.co")) {
-        return "https://motor-concerning-soc-widescreen.trycloudflare.com";
+        return "https://oem-strict-purchased-xbox.trycloudflare.com";
     }
     return "";
 }
