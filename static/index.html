@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MuryaAI — Voice-First Citizen Resolution Agent (N-ATLAS)</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen">
+    <!-- Top Banner -->
+    <header class="border-b border-emerald-900/40 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 font-extrabold text-slate-950 text-xl tracking-tight">
+                    M
+                </div>
+                <div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-emerald-400 bg-clip-text text-transparent">MuryaAI</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">N-VoiceCare</span>
+                    </div>
+                    <p class="text-xs text-slate-400 hidden sm:block">Voice-First Resolution Infrastructure powered by N-ATLAS (NCAIR / NITDA)</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <button id="btn-open-endpoint-modal" class="flex items-center space-x-2 text-xs bg-slate-800/90 hover:bg-slate-800 border border-slate-700/80 px-3 py-1.5 rounded-lg text-slate-200 transition group cursor-pointer shadow-sm">
+                    <span id="endpoint-status-dot" class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span id="endpoint-status-label" class="font-medium text-emerald-300">GPU: Checking...</span>
+                    <span class="text-slate-400 group-hover:text-white text-[11px] ml-1 bg-slate-700/60 px-1.5 py-0.5 rounded">⚙️ Update URL</span>
+                </button>
+                <div class="text-xs bg-emerald-950/60 border border-emerald-600/30 text-emerald-300 px-3 py-1.5 rounded-lg font-semibold tracking-wide hidden sm:block">
+                    NAIC 2026: PS2
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        <!-- Hero & Problem Context -->
+        <section class="bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
+            <div class="absolute -right-20 -top-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="max-w-3xl space-y-3">
+                <div class="inline-flex items-center space-x-2 text-xs font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-950/40 border border-emerald-800/50 px-3 py-1 rounded-full">
+                    <span>Target Audience: 100M+ Nigerian Citizens & MSMEs</span>
+                </div>
+                <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+                    Instant Citizen Dispute Resolution in <span class="text-emerald-400">Hausa, Yoruba, Igbo</span> & Nigerian English
+                </h1>
+                <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                    Over 65% of Nigerians struggle with English-only automated call centers when resolving <strong>failed POS debits</strong> or <strong>missing electricity recharge tokens</strong>. MuryaAI removes all literacy and hardware barriers: speak over a standard phone call (IVR) or WhatsApp voice note, and let N-ATLAS resolve your grievance in seconds.
+                </p>
+            </div>
+
+            <!-- Key Metric Strip -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t border-slate-800/80">
+                <div class="bg-slate-950/50 border border-slate-800/60 rounded-xl p-3.5">
+                    <span class="text-xs text-slate-400 block font-medium">Avg Handling Time</span>
+                    <div class="flex items-baseline space-x-2 mt-1">
+                        <span class="text-2xl font-bold text-emerald-400" id="stat-aht">18.4s</span>
+                        <span class="text-xs text-slate-500 line-through">14m (human)</span>
+                    </div>
+                </div>
+                <div class="bg-slate-950/50 border border-slate-800/60 rounded-xl p-3.5">
+                    <span class="text-xs text-slate-400 block font-medium">Auto-Resolution Rate</span>
+                    <div class="flex items-baseline space-x-2 mt-1">
+                        <span class="text-2xl font-bold text-teal-300" id="stat-rate">94.2%</span>
+                        <span class="text-xs text-emerald-400 font-semibold">Instant</span>
+                    </div>
+                </div>
+                <div class="bg-slate-950/50 border border-slate-800/60 rounded-xl p-3.5">
+                    <span class="text-xs text-slate-400 block font-medium">Hardware Barrier</span>
+                    <div class="flex items-baseline space-x-2 mt-1">
+                        <span class="text-2xl font-bold text-emerald-400">Zero</span>
+                        <span class="text-xs text-slate-400">2G Feature Phone</span>
+                    </div>
+                </div>
+                <div class="bg-slate-950/50 border border-slate-800/60 rounded-xl p-3.5">
+                    <span class="text-xs text-slate-400 block font-medium">Languages Supported</span>
+                    <div class="flex items-baseline space-x-2 mt-1">
+                        <span class="text-2xl font-bold text-white">4</span>
+                        <span class="text-xs text-emerald-400">Hausa, Yor, Igb, Eng</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Workspace: Console & Simulators -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left: Interactive Voice & Query Controller (7 Cols) -->
+            <div class="lg:col-span-7 space-y-6">
+                <!-- Channel & Control Card -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+                    <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm font-semibold text-white">Channel Interface:</span>
+                            <div class="flex bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+                                <button id="tab-web" class="channel-tab active px-3 py-1 rounded-md font-medium text-emerald-400 bg-slate-800 transition">Web Voice</button>
+                                <button id="tab-ivr" class="channel-tab px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition">Phone IVR</button>
+                                <button id="tab-wa" class="channel-tab px-3 py-1 rounded-md font-medium text-slate-400 hover:text-white transition">WhatsApp Voice</button>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2 text-xs">
+                            <span class="text-slate-400">Language:</span>
+                            <select id="lang-select" class="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-200 text-xs focus:ring-1 focus:ring-emerald-500 focus:outline-none">
+                                <option value="auto">Auto-Detect (N-ATLAS)</option>
+                                <option value="hausa">Hausa</option>
+                                <option value="yoruba">Yoruba</option>
+                                <option value="igbo">Igbo</option>
+                                <option value="nigerian_english">Nigerian English</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Voice Record Section -->
+                    <div class="flex flex-col items-center justify-center p-8 bg-slate-950/80 border border-slate-800/80 rounded-xl relative overflow-hidden space-y-4">
+                        <div id="mic-wave" class="w-full h-12 flex items-center justify-center space-x-1.5 opacity-40 transition-all">
+                            <span class="wave-bar h-2"></span>
+                            <span class="wave-bar h-4"></span>
+                            <span class="wave-bar h-8"></span>
+                            <span class="wave-bar h-12"></span>
+                            <span class="wave-bar h-6"></span>
+                            <span class="wave-bar h-10"></span>
+                            <span class="wave-bar h-3"></span>
+                            <span class="wave-bar h-7"></span>
+                        </div>
+
+                        <button id="btn-record" class="w-20 h-20 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/30 transition-transform active:scale-95 group focus:outline-none ring-4 ring-emerald-500/20">
+                            <svg id="mic-icon" class="w-8 h-8 text-slate-950 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/>
+                            </svg>
+                        </button>
+
+                        <div class="text-center space-y-1">
+                            <p id="record-status" class="text-sm font-semibold text-slate-200">Click to Speak in Hausa, Yoruba, Igbo, or Pidgin</p>
+                            <p class="text-xs text-slate-400">Microphone stream is processed through N-ATLAS ASR & NLU</p>
+                        </div>
+                    </div>
+
+                    <!-- One-Click Judge Benchmark Samples -->
+                    <div class="space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Panel Quick-Test Scenarios (One-Click)</span>
+                            <span class="text-xs text-emerald-400">Pre-validated Audio Prompts</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2" id="sample-buttons-container">
+                            <!-- Injected dynamically via app.js -->
+                        </div>
+                    </div>
+
+                    <!-- Direct Text Box Option -->
+                    <div class="pt-2 border-t border-slate-800 space-y-2">
+                        <label class="text-xs text-slate-400 block font-medium">Or Type a Nigerian Language Grievance Query:</label>
+                        <div class="flex space-x-2">
+                            <input type="text" id="manual-text-input" placeholder="e.g., An cire min kudi a POS amma ban samu ba..." class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                            <button id="btn-submit-text" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-xl text-sm transition shadow-md shadow-emerald-600/20">Resolve</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Views (Telephony Nokia & WhatsApp) -->
+                <div id="sim-container" class="hidden bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4">
+                    <h3 class="text-sm font-bold text-white flex items-center space-x-2">
+                        <span id="sim-badge" class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                        <span id="sim-title">Channel Simulator</span>
+                    </h3>
+                    <div id="sim-content" class="bg-slate-950 p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300">
+                        <!-- Dynamic simulator rendering -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Real-Time N-ATLAS Reasoning & Resolution Card (5 Cols) -->
+            <div class="lg:col-span-5 space-y-6">
+                <!-- Active Output Card -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-5">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                        <h2 class="text-sm font-bold text-white flex items-center space-x-2">
+                            <span class="w-2 h-2 rounded-full bg-teal-400"></span>
+                            <span>N-ATLAS Resolution Output</span>
+                        </h2>
+                        <span id="out-latency" class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">Latency: --</span>
+                    </div>
+
+                    <!-- Language & Domain Badges -->
+                    <div class="flex flex-wrap gap-2 text-xs">
+                        <span id="badge-lang" class="px-2.5 py-1 rounded-md bg-emerald-950/80 border border-emerald-700/50 text-emerald-300 font-semibold uppercase">Lang: Ready</span>
+                        <span id="badge-domain" class="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 font-medium">Domain: Pending</span>
+                        <span id="badge-intent" class="px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 font-medium">Intent: Pending</span>
+                    </div>
+
+                    <!-- Spoken Input Transcript -->
+                    <div class="space-y-1.5">
+                        <span class="text-xs text-slate-400 block font-medium">Transcribed Utterance (N-ATLAS ASR):</span>
+                        <div id="out-transcript" class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-sm text-slate-200 italic min-h-[52px]">
+                            "Awaiting voice prompt from caller..."
+                        </div>
+                    </div>
+
+                    <!-- Localized Voice Response Player -->
+                    <div class="p-4 bg-emerald-950/40 border border-emerald-800/40 rounded-xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-emerald-300 uppercase tracking-wide">Spoken Voice Response:</span>
+                            <button id="btn-replay-audio" class="hidden text-xs text-emerald-400 hover:text-emerald-300 font-medium flex items-center space-x-1">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
+                                <span>Replay Audio</span>
+                            </button>
+                        </div>
+                        <div id="out-response-local" class="text-sm font-medium text-emerald-100 leading-relaxed">
+                            Awaiting query to generate synthesized response in native Nigerian dialect.
+                        </div>
+                        <audio id="audio-player" class="hidden w-full h-8 mt-2" controls></audio>
+                    </div>
+
+                    <!-- English Translation Panel for Evaluation Panel -->
+                    <div class="space-y-1.5">
+                        <span class="text-xs text-slate-400 block font-medium">English Translation (For Evaluation Panel):</span>
+                        <div id="out-response-en" class="p-3 bg-slate-950/80 rounded-xl border border-slate-800/60 text-xs text-slate-300 min-h-[44px]">
+                            --
+                        </div>
+                    </div>
+
+                    <!-- Extracted Parameters & Resolution Action -->
+                    <div class="space-y-2 pt-2 border-t border-slate-800">
+                        <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider block">Backend Action & Ticket</span>
+                        <div id="out-action-details" class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 font-mono text-xs text-slate-300 space-y-1">
+                            <div>Ticket ID: <span class="text-teal-400 font-bold" id="ticket-id">--</span></div>
+                            <div>Status: <span class="text-slate-400" id="ticket-status">--</span></div>
+                            <div>Action: <span class="text-slate-400" id="ticket-action">--</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Live Disputes Ledger -->
+                <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-white uppercase tracking-wider">Live System Grievances Feed</span>
+                        <span class="text-xs text-slate-400">Auto-Refreshed</span>
+                    </div>
+                    <div id="recent-tickets-list" class="space-y-2 text-xs">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 mt-12 py-6 bg-slate-950 text-slate-500 text-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>MuryaAI — Built for the National AI Innovation Challenge (NAIC) 2026 by Lukman Abdulkarim & Team.</p>
+            <div class="flex space-x-4">
+                <a href="/docs/ARCHITECTURE.md" target="_blank" class="hover:text-emerald-400 transition">Architecture</a>
+                <a href="/docs/BENCHMARK_REPORT.md" target="_blank" class="hover:text-emerald-400 transition">Benchmark Report</a>
+                <a href="/docs/NAIC_APPLICATION_ANSWERS.md" target="_blank" class="hover:text-emerald-400 transition">NAIC Answers</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Endpoint Configuration Modal -->
+    <div id="endpoint-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm hidden p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5 relative">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <span class="text-lg">🚀</span>
+                    <h3 class="text-base font-bold text-white">N-ATLAS GPU Endpoint Configuration</h3>
+                </div>
+                <button id="btn-close-modal" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 text-sm">✕</button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div class="space-y-1.5">
+                    <label class="block font-semibold text-slate-300">Active Live Inference URL (ngrok / vLLM / Hugging Face):</label>
+                    <input type="text" id="modal-input-url" placeholder="https://<your-ngrok-id>.ngrok-free.app/v1/chat/completions" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                    <p class="text-[11px] text-slate-400">Paste your latest live Kaggle ngrok URL or custom inference endpoint here.</p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="block font-semibold text-slate-300">API Key / Token (Optional):</label>
+                    <input type="password" id="modal-input-key" placeholder="Optional bearer token or HuggingFace token" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500">
+                </div>
+
+                <!-- Live Connection Feedback Box -->
+                <div id="modal-feedback-box" class="p-3 bg-slate-950 rounded-xl border border-slate-800/80 text-xs space-y-1 font-mono">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Connection Status:</span>
+                        <span id="modal-status-badge" class="font-bold text-slate-300">Checking...</span>
+                    </div>
+                    <div id="modal-status-msg" class="text-[11px] text-slate-400 truncate">Checking active connection...</div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-slate-800">
+                <button id="btn-test-connection" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition flex items-center space-x-1.5 cursor-pointer">
+                    <span>⚡ Test Connection</span>
+                </button>
+                <div class="flex space-x-2">
+                    <button id="btn-cancel-modal" class="px-3.5 py-2 rounded-xl bg-slate-800/50 hover:bg-slate-800 text-slate-400 text-xs transition cursor-pointer">Cancel</button>
+                    <button id="btn-save-endpoint" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs transition shadow-md shadow-emerald-600/20 cursor-pointer">Save & Connect</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
