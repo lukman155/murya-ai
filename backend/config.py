@@ -28,6 +28,7 @@ class Settings(BaseModel):
         "https://api-inference.huggingface.co/models/NCAIR1/N-ATLaS"
     )
     NATLAS_API_KEY: str = os.getenv("NATLAS_API_KEY", "")
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     
     # Execution mode: 'hybrid' uses live API if key is present, falls back gracefully to local deterministic reasoning
     EXECUTION_MODE: str = os.getenv("EXECUTION_MODE", "hybrid")

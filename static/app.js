@@ -362,7 +362,7 @@ async function submitTextQuery(text, sampleHint = null) {
     }
 }
 
-// Send voice query to API with client-side fallback
+// Send voice query to API with client-side Groq Whisper fallback
 async function submitVoiceQuery(base64Audio, transcribedText = null) {
     setLoadingState(true);
     const selectedLang = document.getElementById("lang-select").value;
@@ -396,13 +396,52 @@ async function submitVoiceQuery(base64Audio, transcribedText = null) {
         }
         throw new Error(`Server returned ${res.status}`);
     } catch (err) {
-        console.warn("Voice API unavailable, simulating spoken resolution:", err);
-        const queryText = transcribedText || "Hello, can you hear me";
+        console.warn("Backend voice API unavailable, transcribing with edge Groq Whisper:", err);
+        let liveTranscript = transcribedText;
+        if (!liveTranscript) {
+            liveTranscript = await transcribeAudioWithGroq(base64Audio, selectedLang);
+        }
+        const queryText = liveTranscript || "Hello, can you hear me";
+        document.getElementById("manual-text-input").value = queryText;
         const simData = simulateClientResolution(queryText, selectedLang);
         renderResolutionOutput(simData);
     } finally {
         setLoadingState(false);
     }
+}
+
+// Client-side Groq Whisper Large v3 transcription
+async function transcribeAudioWithGroq(base64Audio, langHint) {
+    const groqKey = localStorage.getItem("murya_groq_key") || "";
+    if (!groqKey) return null;
+    try {
+        const fetchRes = await fetch(base64Audio);
+        const blob = await fetchRes.blob();
+        
+        const formData = new FormData();
+        formData.append("file", blob, "voice.webm");
+        formData.append("model", "whisper-large-v3-turbo");
+        formData.append("temperature", "0.0");
+        if (langHint && langHint !== "auto") {
+            const map = { hausa: "ha", yoruba: "yo", igbo: "ig", nigerian_english: "en" };
+            if (map[langHint]) formData.append("language", map[langHint]);
+        }
+
+        const res = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${groqKey}`
+            },
+            body: formData
+        });
+        if (res.ok) {
+            const data = await res.json();
+            return data.text || null;
+        }
+    } catch (e) {
+        console.warn("Groq edge transcription note:", e.message);
+    }
+    return null;
 }
 
 // Client-side deterministic resolution engine
