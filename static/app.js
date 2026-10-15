@@ -59,7 +59,7 @@ function getApiBase() {
     }
     if (custom) return custom.replace(/\/$/, "");
     if (window.location.hostname.includes("hf.space") || window.location.hostname.includes("huggingface.co")) {
-        return "https://watts-lending-mic-photographic.trycloudflare.com";
+        return "https://continuously-world-branches-ranger.trycloudflare.com";
     }
     return "";
 }
