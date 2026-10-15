@@ -317,7 +317,7 @@ def query_natlas_llm(prompt: str, language: str) -> str | None:
             "temperature": 0.2
         }
         try:
-            resp = requests.post(target_url, headers=headers, json=payload, timeout=20, verify=False)
+            resp = requests.post(target_url, headers=headers, json=payload, timeout=35, verify=False)
             if resp.status_code == 200:
                 data = resp.json()
                 if "choices" in data and len(data["choices"]) > 0:
@@ -412,11 +412,11 @@ def test_endpoint_connection(api_url: str, api_key: str = "") -> dict[str, Any]:
         "messages": [
             {"role": "user", "content": "Sannu"}
         ],
-        "max_tokens": 15
+        "max_tokens": 5
     }
     
     try:
-        resp = requests.post(target_url, headers=headers, json=payload, timeout=8, verify=False)
+        resp = requests.post(target_url, headers=headers, json=payload, timeout=25, verify=False)
         latency_ms = round((time.time() - t0) * 1000, 1)
         if resp.status_code == 200:
             data = resp.json()
